@@ -98,3 +98,16 @@ func TestTokenQuerySetsCookie(t *testing.T) {
 		}
 	}
 }
+
+// O cookie é por host: quem abre por localhost sem cookie vai para 127.0.0.1, onde o cookie está.
+func TestLocalhostPageRedirectsTo127(t *testing.T) {
+	e, _ := testEngine(t, Deps{})
+	w := do(e, req("GET", "/algum/lugar?x=1", "localhost:7777"))
+	if w.Code != 302 || w.Header().Get("Location") != "http://127.0.0.1:7777/algum/lugar?x=1" {
+		t.Fatalf("code %d loc %q", w.Code, w.Header().Get("Location"))
+	}
+	// API continua respondendo 401 (sem redirecionar)
+	if w := do(e, req("GET", "/api/health", "localhost:7777")); w.Code != 401 {
+		t.Fatalf("api code %d", w.Code)
+	}
+}

@@ -73,6 +73,12 @@ func guard(s *session.Session) gin.HandlerFunc {
 		if tok == "" {
 			tok, _ = c.Cookie(cookieName)
 		}
+		if !ok(tok) && c.Request.Method == "GET" && strings.HasPrefix(c.Request.Host, "localhost:") && !strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			// o cookie foi gravado em 127.0.0.1; manda para lá em vez de pedir o link de novo
+			c.Redirect(302, fmt.Sprintf("http://127.0.0.1:%d%s", s.Port, c.Request.URL.RequestURI()))
+			c.Abort()
+			return
+		}
 		if !ok(tok) {
 			c.AbortWithStatusJSON(401, gin.H{"error": "sem token: abra o Orion pelo link mostrado no terminal"})
 			return
