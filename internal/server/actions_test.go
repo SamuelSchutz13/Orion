@@ -90,3 +90,29 @@ func TestRunsMergeAbsorbsProc(t *testing.T) {
 		t.Fatalf("%+v", out)
 	}
 }
+
+// npm (run) → cmd → node: a porta do node aparece na linha do run e os filhos somem da lista.
+func TestRunsMergeAbsorbsDescendants(t *testing.T) {
+	r := NewRuns(nil)
+	r.m["run:1"] = &run{id: "run:1", cmd: "npm run dev", pid: 10, createMs: 100}
+	d := func(cpu, mem string) map[string]string { return map[string]string{"cpu": cpu, "mem": mem} }
+	in := []inventory.Item{
+		{ID: "proc:10:100", PID: 10, PPID: 1, Ports: []int{}, Detail: d("0.5%", "10.0 MB")},
+		{ID: "proc:11:110", PID: 11, PPID: 10, Ports: []int{}, Detail: d("0.0%", "2.0 MB")},
+		{ID: "proc:12:120", PID: 12, PPID: 11, Ports: []int{5173, 24678}, Detail: d("3.0%", "80.5 MB")},
+		{ID: "proc:13:50", PID: 13, PPID: 10, Ports: []int{9999}, Detail: d("1.0%", "1.0 MB")}, // criado antes do pai: PID reaproveitado, não é filho
+		{ID: "proc:20:1", PID: 20, PPID: 1, Ports: []int{80}},
+	}
+	out := r.Merge(in)
+	ids := []string{}
+	for _, it := range out {
+		ids = append(ids, it.ID)
+	}
+	if fmt.Sprint(ids) != "[proc:13:50 proc:20:1 run:1]" {
+		t.Fatalf("%v", ids)
+	}
+	run := out[2]
+	if fmt.Sprint(run.Ports) != "[5173 24678]" || run.Detail["cpu"] != "3.5%" || run.Detail["mem"] != "92.5 MB" || run.Detail["children"] != "2" {
+		t.Fatalf("%+v", run)
+	}
+}

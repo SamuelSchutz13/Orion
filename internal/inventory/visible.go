@@ -8,6 +8,7 @@ import (
 
 type ProcInfo struct {
 	PID      int32
+	PPID     int32
 	CreateMs int64
 	Name     string
 	Exe      string
@@ -68,6 +69,7 @@ func AttachPorts(procs []ProcInfo, conns []Conn, runPIDs map[int32]bool) []Item 
 			Status:  StatusOK,
 			Ports:   ps,
 			PID:     int(p.PID),
+			PPID:    int(p.PPID),
 			Actions: []string{"kill"},
 			Hidden:  relay || !(len(ps) > 0 || runPIDs[p.PID] || IsDevRuntime(p.Name)),
 			Detail: map[string]string{

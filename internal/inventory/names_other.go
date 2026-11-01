@@ -2,4 +2,9 @@
 
 package inventory
 
-func snapshotNames() map[int32]string { return nil }
+type snapEntry struct {
+	name string
+	ppid int32
+}
+
+func snapshotProcs() map[int32]snapEntry { return nil }

@@ -30,6 +30,7 @@ type Item struct {
 	Status    Status            `json:"status"`
 	Ports     []int             `json:"ports"`
 	PID       int               `json:"pid,omitempty"`
+	PPID      int               `json:"ppid,omitempty"`
 	Namespace string            `json:"namespace,omitempty"`
 	Image     string            `json:"image,omitempty"`
 	Detail    map[string]string `json:"detail,omitempty"`

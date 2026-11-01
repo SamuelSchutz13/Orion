@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -79,9 +80,8 @@ func (r *Runs) Dismiss(id string) {
 	r.hub.Drop(id)
 }
 
-// Merge acrescenta os itens run: e absorve a linha proc: do mesmo processo (portas, CPU, memória),
-// para cada processo aparecer uma vez só.
-// shortcut: só o PID iniciado é absorvido; netos (npm → node) continuam em linhas próprias.
+// Merge acrescenta os itens run: e absorve as linhas proc: do processo iniciado e de todos os
+// descendentes (npm → cmd → node): portas juntas, CPU e memória somadas, uma linha só.
 func (r *Runs) Merge(items []inventory.Item) []inventory.Item {
 	r.mu.Lock()
 	runs := make([]run, 0, len(r.m))
@@ -90,6 +90,17 @@ func (r *Runs) Merge(items []inventory.Item) []inventory.Item {
 	}
 	r.mu.Unlock()
 	slices.SortFunc(runs, func(a, b run) int { return a.started.Compare(b.started) })
+
+	byID := map[string]int{}
+	kids := map[int][]int{} // ppid → índices dos filhos
+	for i, it := range items {
+		byID[it.ID] = i
+		if it.Kind == inventory.KindProc || it.Kind == "" {
+			kids[it.PPID] = append(kids[it.PPID], i)
+		}
+	}
+	absorbed := map[int]bool{}
+	var out []inventory.Item
 	for _, x := range runs {
 		it := inventory.Item{
 			ID: x.id, Kind: inventory.KindRun, Name: x.cmd, Status: inventory.StatusOK, Ports: []int{},
@@ -99,17 +110,62 @@ func (r *Runs) Merge(items []inventory.Item) []inventory.Item {
 		if x.exited {
 			it.Status, it.Actions = inventory.StatusDown, []string{"dismiss"}
 			it.Detail["exitCode"] = strconv.Itoa(x.code)
-		} else {
-			procID := fmt.Sprintf("proc:%d:%d", x.pid, x.createMs)
-			if i := slices.IndexFunc(items, func(p inventory.Item) bool { return p.ID == procID }); i >= 0 {
-				it.Ports = items[i].Ports
-				for _, k := range []string{"path", "cpu", "mem", "user"} {
-					it.Detail[k] = items[i].Detail[k]
+		} else if root, ok := byID[fmt.Sprintf("proc:%d:%d", x.pid, x.createMs)]; ok {
+			tree := descendants(items, kids, root)
+			var cpu, mem float64
+			for _, i := range tree {
+				absorbed[i] = true
+				for _, p := range items[i].Ports {
+					if !slices.Contains(it.Ports, p) {
+						it.Ports = append(it.Ports, p)
+					}
 				}
-				items = slices.Delete(items, i, i+1)
+				cpu += num(items[i].Detail["cpu"])
+				mem += num(items[i].Detail["mem"])
+			}
+			slices.Sort(it.Ports)
+			for _, k := range []string{"path", "user"} {
+				it.Detail[k] = items[root].Detail[k]
+			}
+			it.Detail["cpu"] = fmt.Sprintf("%.1f%%", cpu)
+			it.Detail["mem"] = fmt.Sprintf("%.1f MB", mem)
+			if len(tree) > 1 {
+				it.Detail["children"] = strconv.Itoa(len(tree) - 1)
 			}
 		}
-		items = append(items, it)
+		out = append(out, it)
 	}
-	return items
+	keep := make([]inventory.Item, 0, len(items)-len(absorbed)+len(out))
+	for i, it := range items {
+		if !absorbed[i] {
+			keep = append(keep, it)
+		}
+	}
+	return append(keep, out...)
+}
+
+// descendants devolve root e todos os descendentes. Um "filho" criado antes do pai é um PID
+// reaproveitado (o pai de verdade já morreu) e fica de fora.
+func descendants(items []inventory.Item, kids map[int][]int, root int) []int {
+	tree := []int{root}
+	for k := 0; k < len(tree); k++ {
+		parent := items[tree[k]]
+		for _, c := range kids[parent.PID] {
+			if createMs(items[c].ID) >= createMs(parent.ID) && !slices.Contains(tree, c) {
+				tree = append(tree, c)
+			}
+		}
+	}
+	return tree
+}
+
+func createMs(procID string) int64 {
+	v, _ := strconv.ParseInt(procID[strings.LastIndexByte(procID, ':')+1:], 10, 64)
+	return v
+}
+
+// num lê o número do início de "3.0%" ou "80.5 MB".
+func num(s string) float64 {
+	v, _ := strconv.ParseFloat(strings.TrimSpace(strings.TrimRight(s, "%MB ")), 64)
+	return v
 }
