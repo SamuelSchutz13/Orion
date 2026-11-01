@@ -73,7 +73,11 @@ type got struct {
 	lines []string
 }
 
-func (g *got) emit(stream, text string) { g.mu.Lock(); g.lines = append(g.lines, stream+":"+text); g.mu.Unlock() }
+func (g *got) emit(stream, text string) {
+	g.mu.Lock()
+	g.lines = append(g.lines, stream+":"+text)
+	g.mu.Unlock()
+}
 func (g *got) waitFor(t *testing.T, want string) {
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Second)
