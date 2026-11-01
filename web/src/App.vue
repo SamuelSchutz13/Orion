@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Moon, Plus, Search, Sun } from '@lucide/vue'
 import { type Action, type Item, type Snapshot, api, streamSnapshots } from '@/lib/api'
 import { type Chip, chipCount, chips, filterItems, isSystem } from '@/lib/filter'
+import { type Hist, updateHistory } from '@/lib/history'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -22,6 +23,7 @@ const selId = ref<string | null>(null)
 const target = ref<{ item: Item; action: Action } | null>(null)
 const cpuHist = ref<number[]>([])
 const memHist = ref<number[]>([])
+const itemHist = ref(new Map<string, Hist>())
 const search = ref<InstanceType<typeof Input> | null>(null)
 const host = location.host
 
@@ -40,6 +42,7 @@ const k8sContext = computed(() => snap.value.items.find(i => i.detail?.context)?
 function onSnap(s: Snapshot) {
   snap.value = s
   loaded.value = true
+  itemHist.value = updateHistory(itemHist.value, s.items)
   if (s.machine) {
     cpuHist.value = [...cpuHist.value, s.machine.cpu].slice(-30)
     memHist.value = [...memHist.value, s.machine.memUsed / 2 ** 30].slice(-30)
@@ -152,7 +155,7 @@ onBeforeUnmount(() => { stop(); document.removeEventListener('keydown', onKey) }
           @select="id => (selId = id)" @act="(item, action) => (target = { item, action })"
           @show-hidden="showAll = true; showSystem = true" />
       </section>
-      <SidePanel :item="selected" @act="(item, action) => (target = { item, action })" />
+      <SidePanel :item="selected" :hist="selId ? itemHist.get(selId) : undefined" @act="(item, action) => (target = { item, action })" />
     </main>
 
     <ConfirmDialog :target="target" @close="target = null" @done="done" />

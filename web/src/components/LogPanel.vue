@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { type Line, streamLogs } from '@/lib/api'
-import { appendCapped, levelOf } from '@/lib/lines'
+import { appendCapped, highlight, levelOf } from '@/lib/lines'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -56,21 +56,6 @@ const counts = computed(() => {
   for (const l of lines.value) { const v = levelOf(l); if (v === 'err') err++; else if (v === 'warn') warn++ }
   return { err, warn }
 })
-// partes do texto com o trecho do filtro marcado (sem v-html)
-function parts(text: string): { t: string; m: boolean }[] {
-  const f = filter.value.toLowerCase()
-  if (!f) return [{ t: text, m: false }]
-  const out: { t: string; m: boolean }[] = []
-  const low = text.toLowerCase()
-  let i = 0
-  for (let j = low.indexOf(f); j >= 0; j = low.indexOf(f, i)) {
-    if (j > i) out.push({ t: text.slice(i, j), m: false })
-    out.push({ t: text.slice(j, j + f.length), m: true })
-    i = j + f.length
-  }
-  if (i < text.length) out.push({ t: text.slice(i), m: false })
-  return out
-}
 const lvClass = { err: 'text-lv-err', warn: 'text-lv-warn', ok: 'text-lv-ok', sys: 'text-faint italic', info: '' }
 const ts = (t: string) => new Date(t).toTimeString().slice(0, 8)
 </script>
@@ -87,7 +72,7 @@ const ts = (t: string) => new Date(t).toTimeString().slice(0, 8)
   <div class="relative min-h-0 flex-1">
     <div ref="box" class="absolute inset-0 overflow-auto px-4 pt-1 pb-[18px] font-mono text-xs leading-[1.65] sm:px-[18px]" role="log" aria-live="off" @scroll="onScroll">
       <div v-for="l in shown" :key="l.seq" class="break-words whitespace-pre-wrap" :class="lvClass[levelOf(l)]">
-        <span class="mr-2 text-faint select-none">{{ ts(l.time) }}</span><template v-for="(p, k) in parts(l.text)" :key="k"><mark v-if="p.m">{{ p.t }}</mark><template v-else>{{ p.t }}</template></template>
+        <span class="mr-2 text-faint select-none">{{ ts(l.time) }}</span><template v-for="(p, k) in highlight(l.text, filter)" :key="k"><mark v-if="p.m">{{ p.t }}</mark><template v-else>{{ p.t }}</template></template>
       </div>
       <div v-if="!shown.length" class="py-4 text-faint">{{ filter ? 'Nenhuma linha corresponde ao filtro.' : 'Sem linhas ainda. Aguardando saída…' }}</div>
     </div>

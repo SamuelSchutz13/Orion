@@ -4,9 +4,13 @@ import { computed } from 'vue'
 import type { Action, Item } from '@/lib/api'
 import { actionLabel, dangerous, kindLabel, statusDot, statusTitle } from '@/lib/format'
 import { Button } from '@/components/ui/button'
+import type { Hist } from '@/lib/history'
 import LogPanel from './LogPanel.vue'
+import Sparkline from './Sparkline.vue'
 
-const props = defineProps<{ item: Item | null }>()
+const props = defineProps<{ item: Item | null; hist?: Hist }>()
+const pct = (v: number) => v.toFixed(1) + '%'
+const mb = (v: number) => (v >= 1024 ? (v / 1024).toFixed(1) + ' GB' : v.toFixed(1) + ' MB')
 const emit = defineEmits<{ act: [item: Item, action: Action] }>()
 
 const meta = computed(() => {
@@ -18,8 +22,8 @@ const meta = computed(() => {
     ['PID', i.pid ? String(i.pid) : ''],
     ['Namespace', i.namespace],
     ['Imagem', i.image],
-    ['CPU', d.cpu], ['Memória', d.mem], ['Usuário', d.user],
-    ['Reinícios', d.restarts], ['Réplicas', d.replicas], ['Código de saída', d.exitCode],
+    ...(props.hist ? [] : [['CPU', d.cpu], ['Memória', d.mem]]), ['Usuário', d.user],
+    ['Filhos', d.children], ['Reinícios', d.restarts], ['Réplicas', d.replicas], ['Código de saída', d.exitCode],
     ['Estado', d.status ?? d.phase], ['Iniciado', d.started],
   ] as [string, string | undefined][]).filter(([, v]) => v)
 })
@@ -45,6 +49,19 @@ const longLines = computed(() => {
       <div v-if="meta.length || longLines.length" class="flex flex-wrap gap-x-4 gap-y-1.5 border-b px-4 py-2.5 text-xs text-muted-foreground sm:px-[18px]">
         <span v-for="[k, v] in meta" :key="k">{{ k }} <b class="font-mono font-medium text-foreground">{{ v }}</b></span>
         <span v-for="l in longLines" :key="l" class="basis-full truncate font-mono" :title="l">{{ l }}</span>
+      </div>
+
+      <div v-if="hist" class="grid grid-cols-2 gap-2.5 border-b px-4 py-2.5 sm:px-[18px]">
+        <div class="tile px-2.5 pt-2 pb-1.5">
+          <div class="tile-lbl">CPU <span>60 s</span></div>
+          <div class="tile-val text-[15px]">{{ pct(hist.cpu.at(-1) ?? 0) }}</div>
+          <Sparkline :data="hist.cpu" :fmt="pct" />
+        </div>
+        <div class="tile px-2.5 pt-2 pb-1.5">
+          <div class="tile-lbl">Memória <span>60 s</span></div>
+          <div class="tile-val text-[15px]">{{ mb(hist.mem.at(-1) ?? 0) }}</div>
+          <Sparkline :data="hist.mem" :fmt="mb" />
+        </div>
       </div>
 
       <LogPanel v-if="item.hasLogs" :item-id="item.id" />

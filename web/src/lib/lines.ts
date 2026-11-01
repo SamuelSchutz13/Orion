@@ -22,3 +22,15 @@ export function levelOf(l: Line): Level {
   if (okRe.test(l.text)) return 'ok'
   return 'info'
 }
+
+export interface Part { t: string; m: boolean }
+
+// Divide o texto em trechos, marcando onde o filtro aparece. Usa regex no texto original
+// (não índices do texto em minúsculas, que mudam de tamanho em letras como "İ").
+export function highlight(text: string, filter: string): Part[] {
+  if (!filter) return [{ t: text, m: false }]
+  const escaped = filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp('(' + escaped + ')', 'gi')
+  // split com grupo de captura alterna: [trecho, ocorrência, trecho, ocorrência, ...]
+  return text.split(re).map((t, k) => ({ t, m: k % 2 === 1 })).filter(p => p.t)
+}
