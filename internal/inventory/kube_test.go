@@ -1,6 +1,8 @@
 package inventory
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -74,5 +76,46 @@ func TestServicePorts(t *testing.T) {
 		Spec: corev1.ServiceSpec{Ports: []corev1.ServicePort{{Port: 80, NodePort: 30080}, {Port: 443}}}}
 	if it := svcItem(s); !reflect.DeepEqual(it.Ports, []int{443, 30080}) || it.Kind != KindService {
 		t.Fatalf("%+v", it)
+	}
+}
+
+func writeKubeconfig(t *testing.T, path, ctx string) {
+	t.Helper()
+	cfg := `apiVersion: v1
+kind: Config
+clusters:
+- name: c
+  cluster: {server: "https://127.0.0.1:1"}
+users:
+- name: u
+  user: {token: x}
+contexts:
+- name: a
+  context: {cluster: c, user: u}
+- name: b
+  context: {cluster: c, user: u}
+current-context: ` + ctx + "\n"
+	if err := os.WriteFile(path, []byte(cfg), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Trocar de contexto (kubectl config use-context) não pode exigir reiniciar o Orion.
+func TestKubeReloadsOnContextChange(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "config")
+	t.Setenv("KUBECONFIG", p)
+	writeKubeconfig(t, p, "a")
+	s := NewKubeSource()
+	cs1, err := s.client()
+	if err != nil || s.ctx != "a" {
+		t.Fatalf("ctx %q err %v", s.ctx, err)
+	}
+	if cs2, _ := s.client(); cs2 != cs1 {
+		t.Fatal("sem mudança deve reaproveitar o cliente")
+	}
+	writeKubeconfig(t, p, "b")
+	cs3, err := s.client()
+	if err != nil || s.ctx != "b" || cs3 == cs1 {
+		t.Fatalf("ctx %q err %v", s.ctx, err)
 	}
 }

@@ -23,6 +23,7 @@ import (
 type KubeSource struct {
 	mu  sync.Mutex
 	cs  *kubernetes.Clientset
+	key string // contexto + servidor do cliente atual
 	ctx string
 }
 
@@ -30,18 +31,29 @@ func NewKubeSource() *KubeSource { return &KubeSource{} }
 
 func (s *KubeSource) Name() string { return "k8s" }
 
+// client relê o kubeconfig a cada chamada (é só um arquivo local) e recria o cliente
+// quando o contexto ou o servidor mudam, como depois de `kubectl config use-context`.
 func (s *KubeSource) client() (*kubernetes.Clientset, error) {
+	raw, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+	if err != nil {
+		return nil, err
+	}
+	if len(raw.Contexts) == 0 {
+		return nil, errors.New("sem kubeconfig")
+	}
+	key := raw.CurrentContext
+	if c := raw.Contexts[raw.CurrentContext]; c != nil {
+		if cl := raw.Clusters[c.Cluster]; cl != nil {
+			key += "|" + cl.Server
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.cs != nil {
+	if s.cs != nil && s.key == key {
 		return s.cs, nil
 	}
-	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{})
-	cfg, err := cc.ClientConfig()
+	cfg, err := clientcmd.NewDefaultClientConfig(*raw, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		if clientcmd.IsEmptyConfig(err) {
-			return nil, errors.New("sem kubeconfig")
-		}
 		return nil, err
 	}
 	cfg.Timeout = 3 * time.Second
@@ -49,10 +61,7 @@ func (s *KubeSource) client() (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
-	if raw, err := cc.RawConfig(); err == nil {
-		s.ctx = raw.CurrentContext
-	}
-	s.cs = cs
+	s.cs, s.key, s.ctx = cs, key, raw.CurrentContext
 	return cs, nil
 }
 
@@ -86,8 +95,11 @@ func (s *KubeSource) List(ctx context.Context) ([]Item, error) {
 	for _, d := range deps.Items {
 		items = append(items, deployItem(d))
 	}
+	s.mu.Lock()
+	ctxName := s.ctx
+	s.mu.Unlock()
 	for i := range items {
-		items[i].Detail["context"] = s.ctx
+		items[i].Detail["context"] = ctxName
 	}
 	return items, nil
 }
