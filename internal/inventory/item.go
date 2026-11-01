@@ -46,6 +46,15 @@ type SourceState struct {
 type Snapshot struct {
 	Items   []Item                 `json:"items"`
 	Sources map[string]SourceState `json:"sources"`
+	Machine *Machine               `json:"machine,omitempty"`
+}
+
+// Machine é o uso atual da máquina (só o valor de agora; nada é guardado).
+type Machine struct {
+	CPU      float64 `json:"cpu"`
+	Cores    int     `json:"cores"`
+	MemUsed  uint64  `json:"memUsed"`
+	MemTotal uint64  `json:"memTotal"`
 }
 
 type Source interface {

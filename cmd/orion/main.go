@@ -59,6 +59,7 @@ func serve(port int, browser bool) error {
 	runs := server.NewRuns(hub)
 	extra := func(items []inventory.Item) []inventory.Item { return append(runs.Merge(items), files.Items()...) }
 	col := inventory.NewCollector(2*time.Second, extra, procs, docker, kube)
+	col.Machine = inventory.MachineStats
 	go col.Run(ctx)
 	deps := server.Deps{Collector: col, Hub: hub, Docker: docker, Kube: kube, LogFiles: files, Runs: runs}
 	srv := &http.Server{Handler: server.New(s, deps)}

@@ -68,3 +68,12 @@ func TestSubscribeGetsLatest(t *testing.T) {
 		t.Fatal("no snapshot")
 	}
 }
+
+func TestMachineStatsLive(t *testing.T) {
+	c := NewCollector(time.Hour, nil)
+	c.Machine = MachineStats
+	s := c.collect(context.Background())
+	if s.Machine == nil || s.Machine.MemTotal == 0 || s.Machine.Cores == 0 || s.Machine.MemUsed > s.Machine.MemTotal {
+		t.Fatalf("%+v", s.Machine)
+	}
+}

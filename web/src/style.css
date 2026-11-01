@@ -1,0 +1,125 @@
+/* Fontes locais: nada sai da máquina. */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "Cascadia Code", ui-monospace, Consolas, monospace;
+  --font-heading: var(--font-sans);
+
+  /* tokens do shadcn-vue */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--hover);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--hover);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--hover);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--red);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent-strong);
+
+  /* tokens do protótipo */
+  --color-panel: var(--panel);
+  --color-hover: var(--hover);
+  --color-press: var(--press);
+  --color-sel: var(--sel);
+  --color-line: var(--line);
+  --color-faint: var(--faint);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--accent-strong);
+  --color-ok: var(--green);
+  --color-warn: var(--yellow);
+  --color-down: var(--red);
+  --color-sys: var(--sys);
+  --color-danger-fg: var(--danger-fg);
+  --color-danger-bd: var(--danger-bd);
+  --color-danger-bg: var(--danger-bg);
+  --color-lv-warn: var(--lv-warn);
+  --color-lv-err: var(--lv-err);
+  --color-lv-ok: var(--lv-ok);
+  --color-track: var(--track);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: #ffffff; --panel: #fafafa; --card: #ffffff; --hover: #f4f4f5; --press: #ededf0; --sel: #eef2ff;
+  --border: #e4e4e7; --line: #f1f1f3; --muted-foreground: #71717a; --faint: #a1a1aa; --foreground: #09090b;
+  --primary: #09090b; --primary-foreground: #fafafa;
+  --brand: #4f46e5; --accent-strong: #4f46e5; --ring-soft: rgba(79, 70, 229, .25);
+  --green: #16a34a; --yellow: #d97706; --red: #dc2626; --sys: #a1a1aa;
+  --danger-fg: #b91c1c; --danger-bd: #fecaca; --danger-bg: #fef2f2;
+  --t-proc: #1d4ed8; --t-proc-b: #bfdbfe; --t-docker: #0e7490; --t-docker-b: #a5f3fc; --t-k8s: #6d28d9; --t-k8s-b: #ddd6fe;
+  --t-file: #a16207; --t-file-b: #fde68a; --t-run: #15803d; --t-run-b: #bbf7d0;
+  --lv-warn: #b45309; --lv-err: #dc2626; --lv-ok: #15803d;
+  --mark-bg: #c7d2fe; --mark-fg: #1e1b4b; --track: #e4e4e7; --thumb: #d4d4d8; --shadow: rgba(0, 0, 0, .12);
+  color-scheme: light;
+}
+
+.dark {
+  --background: #09090b; --panel: #0c0c0f; --card: #111114; --hover: #131317; --press: #1a1a1f; --sel: #17172a;
+  --border: #27272a; --line: #1c1c1f; --muted-foreground: #a1a1aa; --faint: #52525b; --foreground: #fafafa;
+  --primary: #fafafa; --primary-foreground: #09090b;
+  --brand: #818cf8; --accent-strong: #6366f1; --ring-soft: rgba(99, 102, 241, .45);
+  --green: #22c55e; --yellow: #f59e0b; --red: #ef4444; --sys: #52525b;
+  --danger-fg: #fca5a5; --danger-bd: #4c1d1d; --danger-bg: #2a1212;
+  --t-proc: #93c5fd; --t-proc-b: #1e3a5f; --t-docker: #67e8f9; --t-docker-b: #164e63; --t-k8s: #c4b5fd; --t-k8s-b: #3b2a6b;
+  --t-file: #fcd34d; --t-file-b: #5b4510; --t-run: #86efac; --t-run-b: #14532d;
+  --lv-warn: #fbbf24; --lv-err: #f87171; --lv-ok: #86efac;
+  --mark-bg: #4338ca; --mark-fg: #fff; --track: #27272a; --thumb: #3f3f46; --shadow: rgba(0, 0, 0, .5);
+  color-scheme: dark;
+}
+
+@layer base {
+  * { @apply border-border; scrollbar-width: thin; scrollbar-color: var(--thumb) transparent; }
+  html, body, #app { height: 100%; margin: 0; }
+  body { @apply bg-background text-foreground font-sans antialiased; font-size: 14px; line-height: 1.45; }
+  :focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+  mark { background: var(--mark-bg); color: var(--mark-fg); border-radius: 2px; }
+}
+
+@layer components {
+  /* tag do tipo de item */
+  .tag { @apply text-[11px] rounded-[5px] px-1.5 py-px border whitespace-nowrap text-muted-foreground; }
+  .t-proc { color: var(--t-proc); border-color: var(--t-proc-b); }
+  .t-docker { color: var(--t-docker); border-color: var(--t-docker-b); }
+  .t-pod, .t-service, .t-deployment { color: var(--t-k8s); border-color: var(--t-k8s-b); }
+  .t-logfile { color: var(--t-file); border-color: var(--t-file-b); }
+  .t-run { color: var(--t-run); border-color: var(--t-run-b); }
+
+  .tile { @apply border rounded-[10px] bg-card px-3 pt-2.5 pb-2 min-w-0 relative; }
+  .tile-lbl { @apply text-xs text-muted-foreground flex justify-between gap-1.5; }
+  .tile-val { @apply text-xl font-semibold tracking-tight mt-0.5 whitespace-nowrap tabular-nums; }
+  .tile-val small { @apply text-xs font-normal text-muted-foreground ml-1; }
+  .tile-det { @apply text-[11.5px] text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis; }
+
+  .live-dot { @apply size-[7px] rounded-full bg-ok; animation: pulse-ring 2s infinite; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .6); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

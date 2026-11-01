@@ -12,6 +12,7 @@ type Collector struct {
 	timeout  time.Duration
 	extra    func([]Item) []Item // ajusta a lista final (itens do orion run e arquivos .log)
 	srcs     []Source
+	Machine  func(context.Context) *Machine // opcional
 
 	mu     sync.Mutex
 	latest Snapshot
@@ -80,7 +81,13 @@ func (c *Collector) collect(ctx context.Context) Snapshot {
 			}
 		}()
 	}
+	var machine *Machine
+	if c.Machine != nil {
+		wg.Add(1)
+		go func() { defer wg.Done(); machine = c.Machine(ctx) }()
+	}
 	wg.Wait()
+	snap.Machine = machine
 	for i, s := range c.srcs {
 		r := results[i]
 		switch {
