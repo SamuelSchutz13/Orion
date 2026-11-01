@@ -38,6 +38,15 @@ func main() {
 }
 
 func serve(port int, browser bool) error {
+	// Já tem um painel aberto: reaproveita em vez de subir outro (que sobrescreveria o session.json).
+	if s, ok := runner.Existing(); ok {
+		url := fmt.Sprintf("http://127.0.0.1:%d/?t=%s", s.Port, s.Token)
+		fmt.Println("Orion Logger já está rodando em", url)
+		if browser {
+			openBrowser(url)
+		}
+		return nil
+	}
 	s, err := session.New()
 	if err != nil {
 		return err
@@ -68,10 +77,14 @@ func serve(port int, browser bool) error {
 	url := fmt.Sprintf("http://127.0.0.1:%d/?t=%s", s.Port, s.Token)
 	fmt.Println("Orion Logger rodando em", url)
 	if browser {
-		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		openBrowser(url)
 	}
 	if err := srv.Serve(l); err != http.ErrServerClosed {
 		return err
 	}
 	return nil
+}
+
+func openBrowser(url string) {
+	exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 }

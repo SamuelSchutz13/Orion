@@ -65,6 +65,15 @@ func healthy(s *session.Session) *api {
 	return a
 }
 
+// Existing devolve a sessão do painel que já está rodando, se houver um vivo.
+func Existing() (*session.Session, bool) {
+	s, err := session.Load()
+	if err != nil || healthy(s) == nil {
+		return nil, false
+	}
+	return s, true
+}
+
 // connect acha o servidor pelo session.json; se não houver um vivo, sobe um em segundo plano.
 func connect() *api {
 	if s, err := session.Load(); err == nil {

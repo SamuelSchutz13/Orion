@@ -113,3 +113,25 @@ func TestRunMissingCommand(t *testing.T) {
 		t.Fatal("deveria falhar")
 	}
 }
+
+func TestExistingFindsLiveServer(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	if _, ok := Existing(); ok {
+		t.Fatal("sem session.json não há servidor")
+	}
+	serve(t)
+	s, ok := Existing()
+	if !ok || s.Port == 0 || s.Token == "" {
+		t.Fatalf("servidor vivo não encontrado: %+v", s)
+	}
+}
+
+func TestExistingIgnoresStaleSession(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	stale, _ := session.New()
+	stale.Port = 1
+	stale.Save()
+	if _, ok := Existing(); ok {
+		t.Fatal("session.json velho não deve contar como servidor vivo")
+	}
+}
