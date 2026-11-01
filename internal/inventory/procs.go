@@ -36,6 +36,7 @@ func (s *ProcSource) List(ctx context.Context) ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
+	names := snapshotNames()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	seen := map[procKey]bool{}
@@ -55,7 +56,9 @@ func (s *ProcSource) List(ctx context.Context) ([]Item, error) {
 		if c == nil {
 			// Sem permissão (processos do sistema) cada campo fica vazio; não falha a lista.
 			info := ProcInfo{PID: pid, CreateMs: ct}
-			info.Name, _ = p.NameWithContext(ctx)
+			if info.Name = names[pid]; info.Name == "" {
+				info.Name, _ = p.NameWithContext(ctx)
+			}
 			info.Exe, _ = p.ExeWithContext(ctx)
 			info.Cmdline, _ = p.CmdlineWithContext(ctx)
 			info.Username, _ = p.UsernameWithContext(ctx)
