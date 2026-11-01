@@ -14,12 +14,16 @@ import (
 
 	"github.com/SamuelSchutz13/orion-logger/internal/inventory"
 	"github.com/SamuelSchutz13/orion-logger/internal/logs"
+	"github.com/SamuelSchutz13/orion-logger/internal/runner"
 	"github.com/SamuelSchutz13/orion-logger/internal/server"
 	"github.com/SamuelSchutz13/orion-logger/internal/session"
 )
 
 func main() {
 	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "run" {
+		os.Exit(runner.Run(args[1:]))
+	}
 	if len(args) > 0 && args[0] == "serve" {
 		args = args[1:]
 	}

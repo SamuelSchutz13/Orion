@@ -15,6 +15,55 @@ func registerAPI(api *gin.RouterGroup, d Deps) {
 		api.POST("/actions", doAction(d))
 	}
 	api.GET("/logs", streamLogs(d))
+	if d.Runs != nil && d.Hub != nil {
+		api.POST("/runs", func(c *gin.Context) {
+			var body struct {
+				Cmd string
+				PID int32
+			}
+			if c.ShouldBindJSON(&body) != nil || body.PID <= 0 {
+				c.JSON(400, gin.H{"error": "JSON inválido"})
+				return
+			}
+			id := d.Runs.Start(body.Cmd, body.PID)
+			refresh(d)
+			c.JSON(200, gin.H{"id": id})
+		})
+		api.POST("/runs/:id/lines", func(c *gin.Context) {
+			var lines []struct{ Stream, Text string }
+			if c.ShouldBindJSON(&lines) != nil {
+				c.JSON(400, gin.H{"error": "JSON inválido"})
+				return
+			}
+			id := c.Param("id")
+			if !d.Runs.Has(id) {
+				c.JSON(404, gin.H{"error": "run desconhecido"})
+				return
+			}
+			for _, l := range lines {
+				if l.Stream != "err" {
+					l.Stream = "out"
+				}
+				d.Hub.Append(id, l.Stream, l.Text)
+			}
+			c.Status(204)
+		})
+		api.POST("/runs/:id/exit", func(c *gin.Context) {
+			var body struct{ Code int }
+			if c.ShouldBindJSON(&body) != nil {
+				c.JSON(400, gin.H{"error": "JSON inválido"})
+				return
+			}
+			id := c.Param("id")
+			if !d.Runs.Exit(id, body.Code) {
+				c.JSON(404, gin.H{"error": "run desconhecido"})
+				return
+			}
+			d.Hub.Append(id, "sys", fmt.Sprintf("processo terminou com código %d", body.Code))
+			refresh(d)
+			c.Status(204)
+		})
+	}
 	if d.LogFiles != nil {
 		api.GET("/logfiles", func(c *gin.Context) { c.JSON(200, d.LogFiles.Paths()) })
 		api.POST("/logfiles", func(c *gin.Context) {
