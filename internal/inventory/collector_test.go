@@ -46,7 +46,7 @@ func TestSlowSourceTimesOut(t *testing.T) {
 }
 
 func TestExtraItemsIncluded(t *testing.T) {
-	c := NewCollector(time.Hour, func() []Item { return []Item{{ID: "run:1"}} })
+	c := NewCollector(time.Hour, func(items []Item) []Item { return append(items, Item{ID: "run:1"}) })
 	if snap := c.collect(context.Background()); len(snap.Items) != 1 || snap.Items[0].ID != "run:1" {
 		t.Fatalf("%+v", snap)
 	}

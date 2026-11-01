@@ -52,10 +52,11 @@ func serve(port int, browser bool) error {
 	defer stop()
 	procs, docker, kube := inventory.NewProcSource(), inventory.NewDockerSource(), inventory.NewKubeSource()
 	hub, files := logs.NewHub(5000), server.NewLogFiles()
-	extra := func() []inventory.Item { return files.Items() }
+	runs := server.NewRuns(hub)
+	extra := func(items []inventory.Item) []inventory.Item { return append(runs.Merge(items), files.Items()...) }
 	col := inventory.NewCollector(2*time.Second, extra, procs, docker, kube)
 	go col.Run(ctx)
-	deps := server.Deps{Collector: col, Hub: hub, Docker: docker, Kube: kube, LogFiles: files}
+	deps := server.Deps{Collector: col, Hub: hub, Docker: docker, Kube: kube, LogFiles: files, Runs: runs}
 	srv := &http.Server{Handler: server.New(s, deps)}
 	go func() { <-ctx.Done(); srv.Close() }()
 

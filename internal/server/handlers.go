@@ -11,6 +11,8 @@ import (
 func registerAPI(api *gin.RouterGroup, d Deps) {
 	if d.Collector != nil {
 		api.GET("/stream", streamSnapshots(d))
+		api.GET("/actions/preview", previewAction(d))
+		api.POST("/actions", doAction(d))
 	}
 	api.GET("/logs", streamLogs(d))
 	if d.LogFiles != nil {

@@ -10,7 +10,7 @@ import (
 type Collector struct {
 	interval time.Duration
 	timeout  time.Duration
-	extra    func() []Item
+	extra    func([]Item) []Item // ajusta a lista final (itens do orion run e arquivos .log)
 	srcs     []Source
 
 	mu     sync.Mutex
@@ -21,7 +21,7 @@ type Collector struct {
 	kick   chan struct{}
 }
 
-func NewCollector(interval time.Duration, extra func() []Item, srcs ...Source) *Collector {
+func NewCollector(interval time.Duration, extra func([]Item) []Item, srcs ...Source) *Collector {
 	return &Collector{
 		interval: interval, timeout: 5 * time.Second, extra: extra, srcs: srcs,
 		latest: Snapshot{Items: []Item{}, Sources: map[string]SourceState{}},
@@ -94,7 +94,7 @@ func (c *Collector) collect(ctx context.Context) Snapshot {
 		}
 	}
 	if c.extra != nil {
-		snap.Items = append(snap.Items, c.extra()...)
+		snap.Items = c.extra(snap.Items)
 	}
 	byID := make(map[string]Item, len(snap.Items))
 	for _, it := range snap.Items {
