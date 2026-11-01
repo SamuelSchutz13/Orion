@@ -1,0 +1,10 @@
+# local only (planning / agent files)
+docs/
+.superpowers/
+.agents/
+.claude/
+
+orion.exe
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
