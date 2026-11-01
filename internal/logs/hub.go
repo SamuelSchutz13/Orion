@@ -3,7 +3,6 @@ package logs
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 )
@@ -14,9 +13,6 @@ type Line struct {
 	Stream string    `json:"stream"` // "out", "err" ou "sys"
 	Text   string    `json:"text"`
 }
-
-// Clean troca bytes que não são UTF-8 (ex.: saída cp850 do cmd) para o JSON nunca quebrar.
-func Clean(s string) string { return strings.ToValidUTF8(s, "�") }
 
 type sub struct {
 	ch      chan Line

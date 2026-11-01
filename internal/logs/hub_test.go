@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 	"unicode/utf8"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 func TestHubCapsBacklog(t *testing.T) {
@@ -29,7 +31,7 @@ func TestHubInvalidUTF8(t *testing.T) {
 	h.Append("run:1", "out", "ol\xe1")
 	back, _, cancel := h.Subscribe("run:1")
 	defer cancel()
-	if !utf8.ValidString(back[0].Text) || !strings.Contains(back[0].Text, "�") {
+	if !utf8.ValidString(back[0].Text) || !strings.HasPrefix(back[0].Text, "ol") {
 		t.Fatalf("%q", back[0].Text)
 	}
 }
@@ -145,5 +147,14 @@ func TestTailStartsAtLast500(t *testing.T) {
 	defer g.mu.Unlock()
 	if len(g.lines) != 500 || g.lines[0] != "out:l1500" {
 		t.Fatalf("len %d first %q", len(g.lines), g.lines[0])
+	}
+}
+
+func TestCleanDecodesOEM(t *testing.T) {
+	if got := decodeWith(charmap.CodePage850, "vers\xc6o"); got != "versão" {
+		t.Fatalf("%q", got)
+	}
+	if got := Clean("já é utf-8"); got != "já é utf-8" {
+		t.Fatalf("%q", got)
 	}
 }
