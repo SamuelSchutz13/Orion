@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/SamuelSchutz13/orion-logger/internal/inventory"
+	"github.com/SamuelSchutz13/orion-logger/internal/logs"
 	"github.com/SamuelSchutz13/orion-logger/internal/server"
 	"github.com/SamuelSchutz13/orion-logger/internal/session"
 )
@@ -50,9 +51,12 @@ func serve(port int, browser bool) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	procs, docker, kube := inventory.NewProcSource(), inventory.NewDockerSource(), inventory.NewKubeSource()
-	col := inventory.NewCollector(2*time.Second, nil, procs, docker, kube)
+	hub, files := logs.NewHub(5000), server.NewLogFiles()
+	extra := func() []inventory.Item { return files.Items() }
+	col := inventory.NewCollector(2*time.Second, extra, procs, docker, kube)
 	go col.Run(ctx)
-	srv := &http.Server{Handler: server.New(s, server.Deps{Collector: col})}
+	deps := server.Deps{Collector: col, Hub: hub, Docker: docker, Kube: kube, LogFiles: files}
+	srv := &http.Server{Handler: server.New(s, deps)}
 	go func() { <-ctx.Done(); srv.Close() }()
 
 	url := fmt.Sprintf("http://127.0.0.1:%d/?t=%s", s.Port, s.Token)

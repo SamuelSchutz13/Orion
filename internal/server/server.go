@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/SamuelSchutz13/orion-logger/internal/inventory"
+	"github.com/SamuelSchutz13/orion-logger/internal/logs"
 	"github.com/SamuelSchutz13/orion-logger/internal/session"
 	"github.com/SamuelSchutz13/orion-logger/web"
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,11 @@ const cookieName = "orion_token"
 // Deps são as peças que os handlers usam; campos nil desativam as rotas correspondentes.
 type Deps struct {
 	Collector *inventory.Collector
+	Hub       *logs.Hub
+	Docker    *inventory.DockerSource
+	Kube      *inventory.KubeSource
+	LogFiles  *LogFiles
+	Runs      *Runs
 }
 
 func New(s *session.Session, deps Deps) *gin.Engine {
