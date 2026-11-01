@@ -64,8 +64,10 @@ func readLines(t *testing.T, res *http.Response, want string) {
 
 func TestLogsFromHub(t *testing.T) {
 	hub := logs.NewHub(100)
+	runs := NewRuns(hub)
+	runs.Start("x", 1)
 	hub.Append("run:1", "out", "antes")
-	base, s := liveServer(t, Deps{Hub: hub})
+	base, s := liveServer(t, Deps{Hub: hub, Runs: runs})
 	res := get(t, s, base+"/api/logs?id=run:1")
 	defer res.Body.Close()
 	readLines(t, res, "antes")
@@ -102,5 +104,16 @@ func TestLogsUnknownKind404(t *testing.T) {
 	base, s := liveServer(t, Deps{Hub: logs.NewHub(10)})
 	if res := get(t, s, base+"/api/logs?id=proc:1:1"); res.StatusCode != 404 {
 		t.Fatalf("%d", res.StatusCode)
+	}
+}
+
+func TestLogsUnknownRun404(t *testing.T) {
+	hub := logs.NewHub(10)
+	base, s := liveServer(t, Deps{Hub: hub, Runs: NewRuns(hub)})
+	if res := get(t, s, base+"/api/logs?id=run:99"); res.StatusCode != 404 {
+		t.Fatalf("%d", res.StatusCode)
+	}
+	if hub.Has("run:99") {
+		t.Fatal("stream vazio criado no hub")
 	}
 }

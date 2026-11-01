@@ -29,7 +29,7 @@ func streamLogs(d Deps) gin.HandlerFunc {
 		var run func(ctx context.Context)
 		var backlog []logs.Line
 		switch kind, rest, _ := strings.Cut(id, ":"); {
-		case kind == "run" && d.Hub != nil:
+		case kind == "run" && d.Hub != nil && d.Runs != nil && d.Runs.Has(id):
 			back, sub, cancel := d.Hub.Subscribe(id)
 			defer cancel()
 			backlog = back

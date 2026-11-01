@@ -89,3 +89,10 @@ func (h *Hub) Drop(id string) {
 	delete(h.streams, id)
 	h.mu.Unlock()
 }
+
+func (h *Hub) Has(id string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	_, ok := h.streams[id]
+	return ok
+}
